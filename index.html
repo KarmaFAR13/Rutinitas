@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Workflow Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.4);
+            --success: #10b981;
+            --border-color: rgba(51, 65, 85, 0.5);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            background-color: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 900px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .input-group {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        input[type="date"] {
+            background-color: rgba(15, 23, 42, 0.6);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        input[type="date"]:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background-color: rgba(51, 65, 85, 0.4);
+            border-radius: 4px;
+            margin-bottom: 25px;
+            overflow: hidden;
+            display: none; /* Disembunyikan sampai tanggal dipilih */
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+            border-radius: 4px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .schedule-wrapper {
+            position: relative;
+            min-height: 400px;
+        }
+
+        .schedule-content {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            visibility: hidden;
+        }
+
+        .schedule-content.active {
+            opacity: 1;
+            transform: translateY(0);
+            visibility: visible;
+            position: relative;
+        }
+
+        .schedule-title {
+            text-align: center;
+            color: var(--text-main);
+            margin-bottom: 25px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 10px; /* Jarak antar baris tabel */
+        }
+
+        th, td {
+            padding: 18px;
+            text-align: left;
+            background-color: rgba(15, 23, 42, 0.4);
+        }
+
+        th {
+            color: var(--accent);
+            font-weight: 600;
+            width: 160px;
+            border-radius: 12px 0 0 12px;
+            border-left: 3px solid var(--accent);
+        }
+
+        td {
+            border-radius: 0 12px 12px 0;
+            transition: all 0.3s ease;
+        }
+
+        .task-row {
+            opacity: 0;
+            transform: translateY(15px);
+            transition: all 0.3s ease;
+        }
+
+        .task-row:hover th, .task-row:hover td {
+            background-color: rgba(30, 41, 59, 0.8);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        /* Animasi Masuk Berurutan */
+        @keyframes slideUpFade {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Custom Checkbox */
+        .checkbox-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            cursor: pointer;
+        }
+
+        .checkbox-container input {
+            display: none;
+        }
+
+        .checkmark {
+            width: 22px;
+            height: 22px;
+            background-color: transparent;
+            border: 2px solid var(--text-muted);
+            border-radius: 6px;
+            position: relative;
+            margin-top: 2px;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .checkbox-container:hover .checkmark {
+            border-color: var(--accent);
+        }
+
+        .checkbox-container input:checked + .checkmark {
+            background-color: var(--success);
+            border-color: var(--success);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+        }
+
+        .checkmark:after {
+            content: "";
+            position: absolute;
+            display: none;
+            left: 6px;
+            top: 2px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        .checkbox-container input:checked + .checkmark:after {
+            display: block;
+            animation: popIn 0.3s ease;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0) rotate(45deg); }
+            50% { transform: scale(1.2) rotate(45deg); }
+            100% { transform: scale(1) rotate(45deg); }
+        }
+
+        .task-text {
+            transition: all 0.3s ease;
+            line-height: 1.5;
+        }
+
+        /* State ketika Selesai (Dicoret) */
+        .task-row.completed td {
+            background-color: rgba(15, 23, 42, 0.2);
+        }
+        
+        .task-row.completed th {
+            border-left-color: var(--success);
+            color: var(--success);
+            opacity: 0.6;
+        }
+
+        .task-row.completed .task-text {
+            text-decoration: line-through;
+            color: var(--text-muted);
+            opacity: 0.6;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 50px 0;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <div class="header">
+            <h1>Personal Workflow Dashboard</h1>
+            <p>Manajemen Terintegrasi: Akademik, Trading & Afiliasi</p>
+        </div>
+
+        <div class="input-group">
+            <input type="date" id="dateSelector" required>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="schedule-wrapper">
+            <!-- State Awal -->
+            <div id="emptyState" class="schedule-content active">
+                <div class="empty-state">
+                    Silakan pilih tanggal di atas untuk memuat algoritma jadwal harian Anda.
+                </div>
+            </div>
+
+            <!-- Kontainer Jadwal Dinamis -->
+            <div id="dynamicSchedule" class="schedule-content">
+                <h2 class="schedule-title" id="dayIndicator">Jadwal</h2>
+                <table>
+                    <tbody id="tableBody">
+                        <!-- Baris tabel akan masuk di sini -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const weekdaySchedule = [
+            { id: "w1", time: "07:00 - 08:00", activity: "<b>Persiapan Pagi:</b> Memastikan sistem trading berjalan di latar belakang dan notifikasi entry aktif." },
+            { id: "w2", time: "08:00 - 12:00", activity: "<b>Skripsi (Sesi 1):</b> Fokus pengembangan draf atau penyusunan multimedia. Jeda 2-5 menit jika ada notifikasi trading untuk eksekusi." },
+            { id: "w3", time: "12:00 - 13:00", activity: "<b>ISHOMA</b> (Istirahat, Sholat, Makan)" },
+            { id: "w4", time: "13:00 - 16:00", activity: "<b>Skripsi (Sesi 2) / Bimbingan:</b> Melanjutkan pengerjaan skripsi, mengolah data, atau bimbingan dengan dosen pembimbing." },
+            { id: "w5", time: "16:00 - 17:00", activity: "<b>Evaluasi Pasar:</b> Mengecek hasil transaksi hari itu dan memastikan algoritma beroperasi sesuai target profit." },
+            { id: "w6", time: "17:00 - 19:00", activity: "<b>Istirahat Sore:</b> Mandi, relaksasi, dan makan malam." },
+            { id: "w7", time: "19:00 - 21:00", activity: "<b>Optimasi & Waktu Luang:</b> Memperbaiki kode bot Python/EA atau bermain game balap untuk melepas penat." }
+        ];
+
+        const weekendSchedule = [
+            { id: "e1", time: "07:00 - 08:00", activity: "<b>Persiapan Pagi:</b> Rutinitas santai, olahraga ringan, atau persiapan perangkat untuk akhir pekan." },
+            { id: "e2", time: "08:00 - 12:00", activity: "<b>Sesi Pelatihan:</b> Mengikuti jadwal pelatihan untuk upskilling dan pengembangan diri." },
+            { id: "e3", time: "12:00 - 13:00", activity: "<b>ISHOMA</b> (Istirahat, Sholat, Makan)" },
+            { id: "e4", time: "13:00 - 16:00", activity: "<b>Produksi TikTok Affiliate:</b> Penulisan skrip, editing otomatis, dan rendering." },
+            { id: "e5", time: "16:00 - 17:00", activity: "<b>Manajemen Konten:</b> Menjadwalkan unggahan video, mengatur tautan afiliasi, dan meninjau analitik." },
+            { id: "e6", time: "17:00 - 19:00", activity: "<b>Istirahat Sore:</b> Mandi, relaksasi, dan makan malam." },
+            { id: "e7", time: "19:00 - 21:00", activity: "<b>Persiapan Mingguan:</b> Menyusun rencana kerja minggu depan dan mengecek kalender ekonomi." }
+        ];
+
+        const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+        const dateSelector = document.getElementById('dateSelector');
+        const emptyState = document.getElementById('emptyState');
+        const dynamicSchedule = document.getElementById('dynamicSchedule');
+        const dayIndicator = document.getElementById('dayIndicator');
+        const tableBody = document.getElementById('tableBody');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+
+        let currentDateKey = ""; // Menyimpan kunci tanggal YYYY-MM-DD
+        let currentScheduleData = [];
+
+        // Fungsi Load Data dari LocalStorage
+        function loadSavedTasks(dateKey) {
+            const saved = localStorage.getItem(`tasks_${dateKey}`);
+            return saved ? JSON.parse(saved) : {};
+        }
+
+        // Fungsi Simpan Data ke LocalStorage
+        function saveTasks(dateKey, tasksObj) {
+            localStorage.setItem(`tasks_${dateKey}`, JSON.stringify(tasksObj));
+        }
+
+        // Hitung dan Update Progress Bar
+        function updateProgressBar() {
+            const checkboxes = document.querySelectorAll('.task-checkbox');
+            const total = checkboxes.length;
+            const checked = document.querySelectorAll('.task-checkbox:checked').length;
+            const percentage = total === 0 ? 0 : (checked / total) * 100;
+            progressBar.style.width = `${percentage}%`;
+        }
+
+        // Event Listener untuk Checkbox
+        function handleCheckboxChange(event) {
+            const checkbox = event.target;
+            const taskId = checkbox.dataset.id;
+            const row = document.getElementById(`row-${taskId}`);
+            
+            // Animasi coret teks
+            if (checkbox.checked) {
+                row.classList.add('completed');
+            } else {
+                row.classList.remove('completed');
+            }
+
+            // Simpan status
+            const savedTasks = loadSavedTasks(currentDateKey);
+            savedTasks[taskId] = checkbox.checked;
+            saveTasks(currentDateKey, savedTasks);
+
+            // Update bar progres
+            updateProgressBar();
+        }
+
+        dateSelector.addEventListener('change', function(e) {
+            const selectedDate = new Date(this.value);
+            if (isNaN(selectedDate.getTime())) return;
+
+            // Buat ID unik untuk tanggal ini (misal: 2026-05-20)
+            currentDateKey = this.value; 
+
+            const dayIndex = selectedDate.getDay();
+            const dayName = days[dayIndex];
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = selectedDate.toLocaleDateString('id-ID', options);
+
+            const isWeekend = (dayIndex === 0 || dayIndex === 6);
+            currentScheduleData = isWeekend ? weekendSchedule : weekdaySchedule;
+            const modeName = isWeekend ? "Mode Pelatihan & Afiliasi" : "Mode Skripsi & Trading";
+
+            // Ambil histori tugas yang sudah dicentang di tanggal ini
+            const savedTasks = loadSavedTasks(currentDateKey);
+
+            emptyState.classList.remove('active');
+            dynamicSchedule.classList.remove('active');
+            progressContainer.style.display = 'none';
+
+            setTimeout(() => {
+                dayIndicator.innerHTML = `${dayName}, ${formattedDate} <br><span style="font-size:14px; color:var(--text-muted); font-weight:400;">(${modeName})</span>`;
+                
+                tableBody.innerHTML = '';
+                
+                // Render tabel dengan data
+                currentScheduleData.forEach((item, index) => {
+                    const isChecked = savedTasks[item.id] ? "checked" : "";
+                    const completedClass = isChecked ? "completed" : "";
+                    
+                    const tr = document.createElement('tr');
+                    tr.className = `task-row ${completedClass}`;
+                    tr.id = `row-${item.id}`;
+                    // Set delay animasi agar muncul satu per satu
+                    tr.style.animation = `slideUpFade 0.4s ease forwards ${index * 0.1}s`;
+
+                    tr.innerHTML = `
+                        <th>${item.time}</th>
+                        <td>
+                            <label class="checkbox-container">
+                                <input type="checkbox" class="task-checkbox" data-id="${item.id}" ${isChecked}>
+                                <span class="checkmark"></span>
+                                <span class="task-text">${item.activity}</span>
+                            </label>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+
+                // Pasang event listener ke semua checkbox yang baru dibuat
+                document.querySelectorAll('.task-checkbox').forEach(cb => {
+                    cb.addEventListener('change', handleCheckboxChange);
+                });
+
+                progressContainer.style.display = 'block';
+                dynamicSchedule.classList.add('active');
+                
+                // Delay sedikit hitung progress agar animasi terlihat
+                setTimeout(updateProgressBar, 100);
+
+            }, 400); 
+        });
+    </script>
+</body>
+</html>
